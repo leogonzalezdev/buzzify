@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
+import imageCompression from "browser-image-compression";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
@@ -9,18 +10,44 @@ const MessageInput = () => {
   const fileInputRef = useRef(null);
   const { sendMessage } = useChatStore();
 
-  const handleImageChange = (e) => {
+
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
+  
+    // Verificar si el archivo es una imagen
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+      toast.error("Por favor selecciona un archivo de imagen");
       return;
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+  
+    // Verificar si el tamaño del archivo es menor a 2 MB
+    const maxFileSizeMB = 2;
+    if (file.size > maxFileSizeMB * 1024 * 1024) {
+      toast.error("El archivo es demasiado grande. Máximo 2 MB.");
+      return;
+    }
+  
+    try {
+      // Opciones de compresión
+      const options = {
+        maxSizeMB: 1, // Tamaño máximo después de la compresión (en MB)
+        maxWidthOrHeight: 1024, // Tamaño máximo de ancho/alto en píxeles
+        useWebWorker: true, // Usa un web worker para mejorar el rendimiento
+      };
+  
+      // Comprimir la imagen
+      const compressedFile = await imageCompression(file, options);
+  
+      // Convertir la imagen comprimida a base64
+      const compressedBase64 = await imageCompression.getDataUrlFromFile(compressedFile);
+  
+      // Actualizar la vista previa con la imagen comprimida
+      setImagePreview(compressedBase64);
+      toast.success("Imagen lista para subir.");
+    } catch (error) {
+      console.error("Error al comprimir la imagen:", error);
+      toast.error("Ocurrió un error al procesar la imagen.");
+    }
   };
 
   const removeImage = () => {
@@ -43,7 +70,8 @@ const MessageInput = () => {
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.log(error);
+      console.log("Failed to send message:", error);
     }
   };
 

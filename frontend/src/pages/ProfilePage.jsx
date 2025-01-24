@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Camera, Mail, User } from "lucide-react";
+import toast from "react-hot-toast";
+import imageCompression from "browser-image-compression";
 
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
@@ -10,16 +12,42 @@ const ProfilePage = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    // Verificar si el archivo es una imagen
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor, selecciona un archivo de imagen");
+      return;
+    }
 
-    reader.readAsDataURL(file);
-
-    reader.onload = async () => {
-      const base64Image = reader.result;
-      setSelectedImg(base64Image);
-      await updateProfile({ profilePic: base64Image });
+    // Opciones de compresión
+    const options = {
+      maxSizeMB: 1, // Tamaño máximo después de compresión (en MB)
+      maxWidthOrHeight: 1024, // Dimensiones máximas (en píxeles)
+      useWebWorker: true, // Usar web workers para mejorar el rendimiento
     };
+
+    try {
+      // Comprimir la imagen
+      const compressedFile = await imageCompression(file, options);
+
+      // Convertir la imagen comprimida a base64
+      const reader = new FileReader();
+      reader.readAsDataURL(compressedFile);
+
+      reader.onload = async () => {
+        const base64Image = reader.result;
+
+        // Establecer la imagen seleccionada (previsualización)
+        setSelectedImg(base64Image);
+
+        // Subir la imagen comprimida al servidor
+        await updateProfile({ profilePic: base64Image });
+      };
+    } catch (error) {
+      console.error("Error al comprimir la imagen:", error);
+      toast.error("Ocurrió un error al procesar la imagen. Por favor, inténtalo de nuevo.");
+    }
   };
+
 
   return (
     <div className="h-screen pt-20">

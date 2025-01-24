@@ -29,9 +29,6 @@ export const getMessages = async (req, res) => {
         { senderId: userToChatId, receiverId: myId },
       ],
     });
-    console.log({
-      messages
-    });
     // Desencripta los mensajes antes de enviarlos
     const decryptedMessages = messages.map((msg) => ({
       ...msg.toObject(),

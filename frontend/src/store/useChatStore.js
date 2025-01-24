@@ -39,6 +39,9 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
       set({ messages: [...messages, res.data] });
     } catch (error) {
+      if (error?.code === 'ERR_NETWORK') {
+        return toast.error('El archivo es demasiado grande.');
+      }
       toast.error(error.response.data.message);
     }
   },

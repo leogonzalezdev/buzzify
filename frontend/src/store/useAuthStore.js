@@ -79,6 +79,9 @@ export const useAuthStore = create((set, get) => ({
       set({ authUser: res.data });
       toast.success("Profile updated successfully");
     } catch (error) {
+      if (error?.code === 'ERR_NETWORK') {
+        return toast.error('El archivo es demasiado grande.');
+      }
       console.log("error in update profile:", error);
       toast.error(error.response.data.message);
     } finally {
